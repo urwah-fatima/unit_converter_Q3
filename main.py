@@ -1,12 +1,14 @@
 import streamlit as st
 import re
 
+st.set_page_config(page_title="Unit Converter 🔄", layout="wide")
+
 # Initialize session state
 if "history" not in st.session_state:
     st.session_state.history = []
 
 if "show_calculator" not in st.session_state:
-    st.session_state.show_calculator = False
+    st.session_state.show_calculator = True  # Show calculator by default
 
 # Dictionary of conversion factors
 conversion_factors = {
@@ -44,9 +46,39 @@ unit_aliases = {
 
 st.title("🧠 Smart Unit Converter")
 
-# Smart Input Toggle
-if not st.session_state.show_calculator:
-    smart_input = st.text_input("Type a conversion (e.g., '10 kg to lb', '25 C to F'):")
+# Classic Calculator UI
+if st.session_state.show_calculator:
+    conversion_type = st.selectbox("Choose a category:", list(conversion_factors.keys()))
+    units = list(conversion_factors[conversion_type].keys())
+    from_unit = st.selectbox("From:", units)
+    to_unit = st.selectbox("To:", units)
+    value = st.number_input(f"Enter value in {from_unit}:", value=0.0, step=0.1, format="%.2f")
+
+    result = None
+    if conversion_type == "Temperature":
+        if from_unit == "Celsius":
+            result = conversion_factors[conversion_type][to_unit](value)
+        elif from_unit == "Fahrenheit":
+            celsius = (value - 32) * 5/9
+            result = conversion_factors[conversion_type][to_unit](celsius)
+        elif from_unit == "Kelvin":
+            celsius = value - 273.15
+            result = conversion_factors[conversion_type][to_unit](celsius)
+    else:
+        result = value * (conversion_factors[conversion_type][to_unit] / conversion_factors[conversion_type][from_unit])
+
+    if result is not None:
+        output = f"{value} {from_unit} = {result:.4f} {to_unit}"
+        st.success(output)
+        if output not in st.session_state.history:
+            st.session_state.history.insert(0, output)
+            st.session_state.history = st.session_state.history[:10]
+
+    st.button("🧠 Try Smart Input Instead", on_click=lambda: st.session_state.update({"show_calculator": False}))
+
+else:
+    # Smart Input UI
+    smart_input = st.text_input("Type a conversion (e.g., '10 kg to lb', '25 C to F'): ")
 
     # Try to parse smart input
     match = re.match(r"([\d.]+)\s*([a-zA-Z]+)\s*(to|in)?\s*([a-zA-Z]+)", smart_input)
@@ -94,42 +126,12 @@ if not st.session_state.show_calculator:
 
     st.button("🔁 Back to Calculator", on_click=lambda: st.session_state.update({"show_calculator": True}))
 
-else:
-    # Classic Calculator UI
-    conversion_type = st.selectbox("Choose a category:", list(conversion_factors.keys()))
-    units = list(conversion_factors[conversion_type].keys())
-    from_unit = st.selectbox("From:", units)
-    to_unit = st.selectbox("To:", units)
-    value = st.number_input(f"Enter value in {from_unit}:", value=0.0, step=0.1, format="%.2f")
-
-    result = None
-    if conversion_type == "Temperature":
-        if from_unit == "Celsius":
-            result = conversion_factors[conversion_type][to_unit](value)
-        elif from_unit == "Fahrenheit":
-            celsius = (value - 32) * 5/9
-            result = conversion_factors[conversion_type][to_unit](celsius)
-        elif from_unit == "Kelvin":
-            celsius = value - 273.15
-            result = conversion_factors[conversion_type][to_unit](celsius)
-    else:
-        result = value * (conversion_factors[conversion_type][to_unit] / conversion_factors[conversion_type][from_unit])
-
-    if result is not None:
-        output = f"{value} {from_unit} = {result:.4f} {to_unit}"
-        st.success(output)
-        if output not in st.session_state.history:
-            st.session_state.history.insert(0, output)
-            st.session_state.history = st.session_state.history[:10]
-
-    st.button("🧠 Try Smart Input Instead", on_click=lambda: st.session_state.update({"show_calculator": False}))
-
 # Show history
 if st.session_state.history:
-    with st.expander("🕘 Conversion History (last 10)"):
+    with st.expander("🕘 Conversion History (last 10)") :
         for item in st.session_state.history:
             st.write(item)
 
 # Footer
 st.markdown("---")
-st.markdown("Built with ❤️ using Streamlit | Smart Input + Classic Calculator Mode")
+st.markdown("Built with ❤️ using Streamlit and Python")
